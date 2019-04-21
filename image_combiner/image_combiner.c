@@ -2,11 +2,9 @@
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-
 #include <stdio.h>
-
 #define u_char unsigned char
- 
+
 int x, height_1, height_2;
 void combine(u_char *data1, u_char *data2) {
     int row_size = x * 4 * sizeof(u_char);
@@ -26,7 +24,7 @@ void combine(u_char *data1, u_char *data2) {
     
     free(output_data);
 }
- 
+
 int main(int argc, char** argv) {
     if(argc < 3) { 
         puts("Not enough actual parameters");
