@@ -4,4 +4,4 @@ This is a repository for a bunch of arbitrary scripts I use for file management 
 
 The scripts probably depend on ffmpeg or python
 
-image_combiner needs to be compiled with a C compiler, usage is passing in the 2 image file names to be combined vertically.
+image_combiner needs to be compiled with a C compiler, usage is passing in 3 arguments: A file with a list of images to combine into a grid, the number of rows, the number of columns
