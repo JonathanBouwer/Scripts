@@ -5,6 +5,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+
 #define u_char unsigned char
 
 int width, height;
@@ -50,26 +52,43 @@ void freeImages(u_char** images, int count) {
     free(images);
 }
 
-u_char** loadImages(char* filename, int count) {
+void computeNearSquareDimensions(int n, int* x, int* y) {
+    int mid = ceil(sqrt((double) n));
+    while (n % mid != 0) {
+        --mid;
+    }
+    int other = n / mid;
+    *x = mid > other ? mid : other;
+    *y = n / *x;
+}
+
+u_char** loadImages(char* filename, int* count) {
     FILE* fp;
     fp = fopen(filename, "r");
     if (fp == NULL) {
          printf("%s could not be loaded\n", filename);
          return NULL;
     }
-
-    printf("Loading images from %s\n", filename);
+    
+    *count = 0;
+    char tempFilename[128];
+    while (fgets(tempFilename, 128, fp)) {
+        *count += 1;
+    }
+    if (*count == 0) {
+        printf("No file names in %s\n", filename);
+        return NULL;
+    }
+    fseek(fp, 0, SEEK_SET);
+    
+    
+    printf("Loading %d images from %s\n", *count, filename);
     int temp_width, temp_height, n;
-    u_char** result = (u_char**) malloc(count * sizeof(u_char**));
-    for (int i = 0; i < count; ++i) {
+    u_char** result = (u_char**) malloc(*count * sizeof(u_char**));
+    for (int i = 0; i < *count; ++i) {
         char currentFilename[128];
         fgets(currentFilename, 128, fp);
-        if (currentFilename == NULL) {
-            printf("Not enough files specified (found %d, expcted %d)\n", i, count);
-            freeImages(result, i);
-            fclose(fp);
-            return NULL;
-        }
+
         int last = strlen(currentFilename) - 1;
         if (currentFilename[last] == '\n') {
             currentFilename[last] = '\0';
@@ -105,19 +124,30 @@ u_char** loadImages(char* filename, int count) {
 int main(int argc, char** argv) {
     width = -1;
     height = -1;
-    if(argc < 4) {
+    if(argc < 2) {
         puts("Not enough actual parameters");
         return 1;
     }
     char* filename = argv[1];
-    int rows = atoi(argv[2]);
-    int cols = atoi(argv[3]);
-    int count = rows*cols;
+    int rows = 0, cols = 0, count;
+    if (argc >= 3) {
+        rows = atoi(argv[2]);
+    }
+    if (argc >= 4) {
+        cols = atoi(argv[3]);
+    }
 
-    u_char** images = loadImages(filename, count);
+    u_char** images = loadImages(filename, &count);
     if (images == NULL) {
         return 1;
     }
+    
+    if (rows == 0 || cols == 0) {
+        puts("No row size passed, computing near square dimensions");
+        computeNearSquareDimensions(count, &rows, &cols);
+        printf("Dimensions: %d X %d\n", rows, cols);
+    }
+    
     printf("Combining the first %d images listed in %s of dimensions %dx%d into a %dx%d image saved as output.jpg\n", count, filename, width, height, width*cols, height*rows);
     combine(images, rows, cols);
     freeImages(images, count);

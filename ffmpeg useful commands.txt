@@ -4,3 +4,6 @@ ffmpeg -i in1.mp4 -i in2.mp4 -filter_complex "[0:v] [0:a] [1:v] [1:a] concat=n=2
 # Convert a video to be pillar boxed
 # Here a 960x720 video is converted to 1280x720 with pillarboxes
 ffmpeg -i in.mp4 -vf scale=960x720,setsar=1,pad=1280:720:160:0 output1.mp4
+
+# Trim a video
+ffmpeg -i input.mp4 -ss 01:10:27 -to 02:18:51 output.mp4
