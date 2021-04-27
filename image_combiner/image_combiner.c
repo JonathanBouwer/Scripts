@@ -16,7 +16,8 @@ void combine(u_char** images, int rows, int cols) {
     int outputHeight = height * rows;
     int numImages = rows * cols;
     
-    u_char* output_data = (u_char*) malloc(outputWidth * outputHeight * pixel_size);
+    int outputLength = outputWidth * outputHeight * pixel_size;
+    u_char* output_data = (u_char*) malloc(outputLength);
     
     int currentMajorRow = 0;
     int currentMajorColumn = 0;
@@ -34,12 +35,19 @@ void combine(u_char** images, int rows, int cols) {
             currentMajorRow++;
         }
     }
-    
-    int result = stbi_write_jpg("output.jpg", outputWidth, outputHeight, 4, output_data, 90);
+
+    int crcHash = 0;
+    for (int i = 0; i < outputLength; ++i) {
+        crcHash = (crcHash + output_data[i]) & 0xFFFFFF;
+    }
+    char filename[32];
+    snprintf(filename, 32, "output [%06x].jpg", crcHash);
+
+    int result = stbi_write_jpg(filename, outputWidth, outputHeight, 4, output_data, 90);
     if (result) {
-        puts("output.jpg was successfully written");
+        printf("%s was successfully written\n", filename);
     } else {
-        puts("Error writing output.jpg");
+        printf("Error writing %s\n", filename);
     }
     
     free(output_data);
@@ -148,7 +156,7 @@ int main(int argc, char** argv) {
         printf("Dimensions: %d X %d\n", rows, cols);
     }
     
-    printf("Combining the first %d images listed in %s of dimensions %dx%d into a %dx%d image saved as output.jpg\n", count, filename, width, height, width*cols, height*rows);
+    printf("Combining the first %d images listed in %s of dimensions %dx%d into a %dx%d image\n", count, filename, width, height, width*cols, height*rows);
     combine(images, rows, cols);
     freeImages(images, count);
     return 0;
