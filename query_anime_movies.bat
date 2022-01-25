@@ -11,7 +11,8 @@ import json
 import re
 
 DEBUG=False
-STERKINIKOR_JWT="<INSERT_JWT>"
+# Create a file called anime_movie_jwt.txt with your token
+STERKINIKOR_JWT=open("anime_movie_jwt.txt").read()
 
 def debug_print(val):
     if DEBUG:
