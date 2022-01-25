@@ -13,5 +13,5 @@ SET Y=0
 if not exist output mkdir output
 for %%f in (*.jpg) do (
 echo %%f
-ffmpeg -loglevel panic -i "%%f" -vf "crop=%W%:%H%:%X%:%Y%" "output/%%f"
+start /B ffmpeg -loglevel panic -i "%%f" -q:v 2 -vf "crop=%W%:%H%:%X%:%Y%" "output/%%f"
 )

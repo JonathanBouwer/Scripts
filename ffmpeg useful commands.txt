@@ -13,3 +13,10 @@ ffmpeg -i input1.mp4 -i input2.mp4 -filter_complex "[0:v]pad=iw*2:ih[int]; [int]
 
 # Dump subtitles
 ffmpeg -i input1.mkv -map 0:s:0 output.ass
+
+# Export video to something websites understand
+ffmpeg -i input1.mkv -c:v libx264 -c:a copy -pix_fmt yuv420p -ss 00:01:01.985 -to 00:01:05.072 -crf 21 out.mp4
+
+# Downmix to stereo
+# See documentation for custom mappings: https://trac.ffmpeg.org/wiki/AudioChannelManipulation#a5.1stereo
+ffmpeg -i input1.mkv -c:v libx264 -c:a mp3 -ac 2 output.mp4

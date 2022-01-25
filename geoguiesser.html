@@ -1,0 +1,93 @@
+<html>
+<script>
+const lerp = (p1, p2, t) => {
+    return p2 + (p1 - p2) * t;
+};
+const getCol = (v) => {
+    if (v < 30) {
+        return "🟥";
+    } else if (v < 60) {
+        return "🟧";
+    } else if (v < 90) {
+        return "🟨";
+    } else {
+        return "🟩";
+    }
+};
+const validateGet = (id, max=undefined) => {
+    const el = document.getElementById(id);
+    let val = el.value;
+    if (!/^\d+$/.test(val)) {
+        el.value = "";
+        alert("Enter a valid positive integer for "+ id);
+        return;
+    };
+    val = parseInt(val);
+    if (max && val > max) {
+        el.value = "";
+        alert("Enter a value <= " + max + " for "+ id);
+        return -1;
+    }
+    return val;
+}
+
+const geoguessEmoji = () => {
+    const score = validateGet("geoguesserScore", 5000);
+    const maxDiff = validateGet("maxDiff", 2500);
+    const numBlocks = validateGet("numBlocks");
+    
+    let p1 = 0;
+    let p2 = 0;
+    if (score < maxDiff) {
+        p1 = score;
+    } else if (score > 5000 - maxDiff) {
+        p1 = 2500;
+        p2 = score - 2500;
+    } else {
+        p1 = (score + maxDiff) / 2;
+        p2 = p1 - maxDiff;
+    }
+    
+    p1 = p1 * 120 / 2500;
+    p2 = p2 * 120 / 2500;
+    
+    const step = 1 / numBlocks;
+    let outputText = "";
+    for (let i = 0; i <= 1; i += step) {
+        const v1 = lerp(p1, p2, i);
+        outputText = outputText + getCol(v1);
+    }
+    
+    const output = document.getElementById("output");
+    output.innerText = outputText;
+};
+let autoScore = 0;
+const autoIncr = () => {
+    const maxDiff = validateGet("maxDiff", 2500);
+    const numBlocks = validateGet("numBlocks");
+    const incr = () => {
+        if (autoScore >= 5000) {
+            autoScore = 0;
+            document.getElementById("geoguesserScore").value = "";
+            return;
+        }
+        autoScore += 10;
+        document.getElementById("geoguesserScore").value = autoScore;
+        geoguessEmoji();
+        setTimeout(incr, 10);
+    }
+    incr();
+}
+</script>
+<body>
+<span>Max Diff: </span> <input type="text" id="maxDiff" value="1000">
+<span>Num Blocks: </span> <input type="text" id="numBlocks" value="5">
+</br>
+</br>
+</br>
+<input type="text" id="geoguesserScore">
+<input type="button" value="Generate Geoguesser Tweet" onclick="geoguessEmoji()">
+<input type="button" value="Auto Increment" onclick="autoIncr()">
+<p id="output">
+</body>
+</html>
