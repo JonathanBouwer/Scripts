@@ -20,3 +20,6 @@ ffmpeg -i input1.mkv -c:v libx264 -c:a copy -pix_fmt yuv420p -ss 00:01:01.985 -t
 # Downmix to stereo
 # See documentation for custom mappings: https://trac.ffmpeg.org/wiki/AudioChannelManipulation#a5.1stereo
 ffmpeg -i input1.mkv -c:v libx264 -c:a mp3 -ac 2 output.mp4
+
+# Hardcode subs for files with complex names
+ffmpeg -i "[X] File - 1 [Y].mkv" -filter_complex "subtitles='[X] File - 1 [Y].mkv'" -c:v libx264 -crf 21 -c:a mp3 "file_out.mp4"
