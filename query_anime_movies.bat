@@ -5,6 +5,7 @@ pause
 exit /b %errorlevel%
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 import json
@@ -63,12 +64,19 @@ query ($search: String, $duration_greater: Int, $duration_lesser: Int) {
   }
 }
     '''
+    query = ' '.join(query.split())
 
     # Define our query variables and values that will be used in the query request
+    delta = 15
+    min_runtime = runtime - delta
+    max_runtime = runtime + delta
+    if runtime < delta:
+        min_runtime = 45
+        max_runtime = 150
     variables = {
         'search': search_title,
-        'duration_greater': runtime - 5,
-        'duration_lesser': runtime + 5
+        'duration_greater': min_runtime,
+        'duration_lesser': max_runtime
     }
 
     url = 'https://graphql.anilist.co'
@@ -167,17 +175,23 @@ def query_animated_movie():
     return animated_movies
 
 
+def check_in_anilist(animated_movie):
+    if is_in_anilist(animated_movie['title'], animated_movie['staff'], animated_movie['runtime']):
+        print(f'Ster-Kinekor - {animated_movie["title"]}: {animated_movie["url"]}')
+        print()
+        return True
+    return False
+
+
 def main():
     animated_movies = query_animated_movie()
-    found = False
-    for animated_movie in animated_movies:
-        if is_in_anilist(animated_movie['title'], animated_movie['staff'], animated_movie['runtime']):
-            print(f'Ster-kinekor - {animated_movie["title"]}: {animated_movie["url"]}')
-            print()
-            found = True
+    total = len(animated_movies)
+    print(f'Found {total} movie{"" if total == 1 else "s" } at Ster-Kinekor')
 
-    if not found:
-        print("Nothing Found")
+    with ThreadPoolExecutor() as executor:
+        results = executor.map(check_in_anilist, animated_movies)
+        if not True in results:
+            print("Nothing Found")
 
 
 if __name__=='__main__':
