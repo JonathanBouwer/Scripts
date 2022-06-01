@@ -11,6 +11,9 @@ ffmpeg -i input.mp4 -ss 01:10:27 -to 02:18:51 output.mp4
 # Place 2 videos next to eachother
 ffmpeg -i input1.mp4 -i input2.mp4 -filter_complex "[0:v]pad=iw*2:ih[int]; [int][1:v]overlay=W/2:0[vid]" -map "[vid]" -c:v libx264 -crf 23 output.mp4
 
+# Similar to above, place multiple videos in a grid (567x768 resolution)
+ffmpeg -i 1.mp4 -i 2.mp4 -i 3.mp4 -i 4.mp4 -filter_complex "[0:v]pad=iw*6:ih*4[p0];[p0][1:v]overlay=768:0[p1];[p1][2:v]overlay=0:576[p2];[p2][3:v]overlay=768:576[p3]" -map "[p3]" -c:v libx264 -pix_fmt yuv420p -preset slow -crf 21 output.mp4
+
 # Dump subtitles
 ffmpeg -i input1.mkv -map 0:s:0 output.ass
 
