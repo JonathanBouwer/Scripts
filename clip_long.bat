@@ -13,13 +13,13 @@ set arg=
 if "%1"=="" (set /p arg="Enter clip file name: ") else (set arg=%*)
 if not defined arg (goto end)
 
-set filename=%arg:~0,-22%.mkv
-set rawstart=%arg:~-20,-11%
-set rawend=%arg:~-10,-1%
-set start=00:%arg:~-20,-18%:%arg:~-17,-11%
-set end=00:%arg:~-10,-8%:%arg:~-7,-1%
+set filename=%arg:~0,-26%.mkv
+set rawstart=%arg:~-24,-13%
+set rawend=%arg:~-12,-1%
+set start=0%arg:~-24,-23%:%arg:~-22,-20%:%arg:~-19,-13%
+set end=0%arg:~-12,-11%:%arg:~-10,-8%:%arg:~-7,-1%
 
-echo ffmpeg -loglevel error -i "%filename%" -c:v libx264 -c:a mp3 -pix_fmt yuv420p -ss %start% -to %end% -crf 21 -preset slow out[%rawstart%-%rawend%].mp4
+echo ffmpeg -loglevel error -i "%filename%" -c:v libx264 -c:a mp3 -pix_fmt yuv420p -ss %start% -to %end% -crf 21 out[%rawstart%-%rawend%].mp4
 if "%1"=="" (goto loop)
 
 :end
