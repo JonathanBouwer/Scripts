@@ -1,5 +1,7 @@
 @echo off
 rem = """
+curl ifconfig.me
+echo ~
 python -x "%~f0" %*
 pause
 exit /b %errorlevel%
@@ -10,6 +12,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 import json
 import re
+import datetime
 
 DEBUG=False
 # Create a file called anime_movie_jwt.txt with your token
@@ -187,6 +190,10 @@ def main():
     animated_movies = query_animated_movie()
     total = len(animated_movies)
     print(f'Found {total} movie{"" if total == 1 else "s" } at Ster-Kinekor')
+    if datetime.datetime.today().weekday() >= 4:
+        print("It's the weekend so showing current animated movies:")
+        for movie in sorted(animated_movies, key=lambda x:x["title"]):
+            print("  " + movie['title'])
 
     with ThreadPoolExecutor() as executor:
         results = executor.map(check_in_anilist, animated_movies)
