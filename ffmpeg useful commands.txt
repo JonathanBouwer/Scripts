@@ -1,5 +1,6 @@
 # Concatenate 2 videos
 ffmpeg -i in1.mp4 -i in2.mp4 -filter_complex "[0:v] [0:a] [1:v] [1:a] concat=n=2:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" output.mp4
+mpv in1.mp4 in2.mp4 --o=output.mp4
 
 # Convert a video to be pillar boxed
 # Here a 960x720 video is converted to 1280x720 with pillarboxes
@@ -7,6 +8,9 @@ ffmpeg -i in.mp4 -vf scale=960x720,setsar=1,pad=1280:720:160:0 output1.mp4
 
 # Trim a video
 ffmpeg -i input.mp4 -ss 01:10:27 -to 02:18:51 output.mp4
+
+# Resize video (maintain aspect ratio)
+ffmpeg -i input.mp4 -vf scale=-1:720 -c:a copy -c:v libx264 -pix_fmt yuv420p -preset slower -crf 18 output.mp4
 
 # Place 2 videos next to eachother
 ffmpeg -i input1.mp4 -i input2.mp4 -filter_complex "[0:v]pad=iw*2:ih[int]; [int][1:v]overlay=W/2:0[vid]" -map "[vid]" -c:v libx264 -crf 23 output.mp4
@@ -17,6 +21,9 @@ ffmpeg -i 1.mp4 -i 2.mp4 -i 3.mp4 -i 4.mp4 -filter_complex "[0:v]pad=iw*6:ih*4[p
 # Dump subtitles
 ffmpeg -i input1.mkv -map 0:s:0 output.ass
 
+# Dump attachments
+ffmpeg -dump_attachment:t "" -i file.mkv
+
 # Export video to something websites understand
 ffmpeg -i input1.mkv -c:v libx264 -c:a copy -pix_fmt yuv420p -ss 00:01:01.985 -to 00:01:05.072 -crf 21 out.mp4
 
@@ -26,3 +33,12 @@ ffmpeg -i input1.mkv -c:v libx264 -c:a mp3 -ac 2 output.mp4
 
 # Hardcode subs for files with complex names
 ffmpeg -i "[X] File - 1 [Y].mkv" -filter_complex "subtitles='[X] File - 1 [Y].mkv'" -c:v libx264 -crf 21 -c:a mp3 "file_out.mp4"
+
+# Hardcode subs when subtitles are picture based subs (PGS)
+ffmpeg -i "[X] File - 1 [Y].mkv" -filter_complex "[0:v][0:s]overlay[v]" -map "[v]" -map 0:a -c:v libx264 -c:a mp3 out.mp4
+
+# Crossfade between 2 videos
+ffmpeg -i 1.mp4 -i 2.mp4 -filter_complex "[0:v][1:v]xfade=offset=5:duration=3[outv];[0:a][1:a]acrossfade=duration=3[outa]" -c:v libx264  -pix_fmt yuv420p -crf 21 -map [outv] -map [outa] out.mp4
+
+# Crossfade but the framerates aren't aligned
+ffmpeg -i 1.mp4 -i 2.mp4 -filter_complex "[0:v]settb=AVTB,fps=24/1[v0];[1:v]settb=AVTB,fps=24/1[v1];[v0][v1]xfade=offset=7:duration=3" out.mp4

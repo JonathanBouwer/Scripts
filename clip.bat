@@ -19,7 +19,7 @@ set rawend=%arg:~-10,-1%
 set start=00:%arg:~-20,-18%:%arg:~-17,-11%
 set end=00:%arg:~-10,-8%:%arg:~-7,-1%
 
-echo ffmpeg -loglevel error -i "%filename%" -c:v libx264 -c:a mp3 -pix_fmt yuv420p -ss %start% -to %end% -crf 21 -preset slow out[%rawstart%-%rawend%].mp4
+echo ffmpeg -loglevel error -i "%filename%" -pix_fmt yuv420p -ss %start% -to %end% -crf 21 -preset slow -c:v libx264 -c:a mp3 out[%rawstart%-%rawend%].mp4
 if "%1"=="" (goto loop)
 
 :end
