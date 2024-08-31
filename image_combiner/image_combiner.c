@@ -9,8 +9,13 @@
 
 #define u_char unsigned char
 
+struct ImageData {
+    char* filename;
+    u_char** data;
+};
+
 int width, height;
-void combine(u_char** images, int rows, int cols) {
+void combine(u_char** images, int rows, int cols, char* filenamePrefix) {
     int pixel_size = 4 * sizeof(u_char);
     int outputWidth = width * cols;
     int outputHeight = height * rows;
@@ -40,8 +45,8 @@ void combine(u_char** images, int rows, int cols) {
     for (int i = 0; i < outputLength; ++i) {
         crcHash = (crcHash + output_data[i]) & 0xFFFFFF;
     }
-    char filename[32];
-    snprintf(filename, 32, "output [%06x].jpg", crcHash);
+    char filename[196];
+    snprintf(filename, 196, "%s - output [%06x].jpg", filenamePrefix, crcHash);
 
     int result = stbi_write_jpg(filename, outputWidth, outputHeight, 4, output_data, 90);
     if (result) {
@@ -70,12 +75,12 @@ void computeNearSquareDimensions(int n, int* x, int* y) {
     *y = n / *x;
 }
 
-u_char** loadImages(char* filename, int* count) {
+void loadImages(char* filename, int* count, struct ImageData* result) {
     FILE* fp;
     fp = fopen(filename, "r");
     if (fp == NULL) {
-         printf("%s could not be loaded\n", filename);
-         return NULL;
+        printf("%s could not be loaded\n", filename);
+        return;
     }
     
     *count = 0;
@@ -85,14 +90,14 @@ u_char** loadImages(char* filename, int* count) {
     }
     if (*count == 0) {
         printf("No file names in %s\n", filename);
-        return NULL;
+        return;
     }
     fseek(fp, 0, SEEK_SET);
     
-    
     printf("Loading %d images from %s\n", *count, filename);
     int temp_width, temp_height, n;
-    u_char** result = (u_char**) malloc(*count * sizeof(u_char**));
+    char* resultFilename = malloc(128 * sizeof(char));
+    u_char** imageData = (u_char**) malloc(*count * sizeof(u_char**));
     for (int i = 0; i < *count; ++i) {
         char currentFilename[128];
         fgets(currentFilename, 128, fp);
@@ -104,9 +109,9 @@ u_char** loadImages(char* filename, int* count) {
         u_char *data = stbi_load(currentFilename, &temp_width, &temp_height, &n, 4);
         if (data == NULL) {
             printf("%s (file %d) could not be loaded\n", currentFilename, i);
-            freeImages(result, i);
+            freeImages(imageData, i);
             fclose(fp);
-            return NULL;
+            return;
         }
 
         if (width < 0 || height < 0) {
@@ -118,15 +123,21 @@ u_char** loadImages(char* filename, int* count) {
             printf("%s has different dimensions, cannot combing\n", currentFilename);
             printf("Expected width %d, has width %d\n", width, temp_width);
             printf("Expected height %d, has height %d\n", height, temp_height);
-            freeImages(result, i);
+            freeImages(imageData, i);
+            free(resultFilename);
             fclose(fp);
-            return NULL;
+            return;
         }
+
         printf("Loaded %s\n", currentFilename);
-        result[i] = data;
+        if (i == 0) {
+            strncpy(resultFilename, currentFilename, 128);
+        }
+        imageData[i] = data;
     }
     fclose(fp);
-    return result;
+    result->filename = resultFilename;
+    result->data = imageData;
 }
 
 int main(int argc, char** argv) {
@@ -145,11 +156,15 @@ int main(int argc, char** argv) {
         cols = atoi(argv[3]);
     }
 
-    u_char** images = loadImages(filename, &count);
-    if (images == NULL) {
+    struct ImageData imageData = {0};
+    loadImages(filename, &count, &imageData);
+    if (imageData.data == NULL) {
         return 1;
     }
     
+    u_char** images = imageData.data;
+    char* filenamePrefix = imageData.filename;
+
     if (rows == 0 || cols == 0) {
         puts("No row size passed, computing near square dimensions");
         computeNearSquareDimensions(count, &rows, &cols);
@@ -157,7 +172,8 @@ int main(int argc, char** argv) {
     }
     
     printf("Combining the first %d images listed in %s of dimensions %dx%d into a %dx%d image\n", count, filename, width, height, width*cols, height*rows);
-    combine(images, rows, cols);
+    combine(images, rows, cols, filenamePrefix);
     freeImages(images, count);
+    free(filenamePrefix);
     return 0;
 }
