@@ -6,7 +6,13 @@ The scripts probably depend on ffmpeg or Python.
 
 ### Image Combiner
 
-image_combiner needs to be compiled with a C compiler, usage is passing in 3 arguments: A file with a list of images to combine into a grid, the number of rows, the number of columns.
+image_combiner needs to be compiled with a C compiler.
+
+It can be used to make a grid of images (default) or a subtitle stack containing the first image and then the bottom quarter of 
+
+There are 2 usages:
+* Grid parameters: Filename of a file with a list of images, the number of rows, the number of columns. The rows and columns can be excluded for a square-ish grid.
+* Subtitle Stack parameters: Filename of a file with a list of images, the flag "-v"
 
 ### Bad Apple
 

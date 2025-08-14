@@ -8,11 +8,29 @@
 #include <math.h>
 
 #define u_char unsigned char
+#define MAX_FILENAME_LENGTH 512
 
 struct ImageData {
     char* filename;
     u_char** data;
 };
+
+void writeImageFile(char* filenamePrefix, int outputWidth, int outputHeight, u_char* output_data,
+                    int outputLength) {
+    int crcHash = 0;
+    for (int i = 0; i < outputLength; ++i) {
+        crcHash = (crcHash + output_data[i]) & 0xFFFFFF;
+    }
+    char filename[MAX_FILENAME_LENGTH];
+    snprintf(filename, MAX_FILENAME_LENGTH, "%s - output [%06x].jpg", filenamePrefix, crcHash);
+
+    int result = stbi_write_jpg(filename, outputWidth, outputHeight, 4, output_data, 90);
+    if (result) {
+        printf("%s was successfully written\n", filename);
+    } else {
+        printf("Error writing %s\n", filename);
+    }
+}
 
 int width, height;
 void combine(u_char** images, int rows, int cols, char* filenamePrefix) {
@@ -20,10 +38,10 @@ void combine(u_char** images, int rows, int cols, char* filenamePrefix) {
     int outputWidth = width * cols;
     int outputHeight = height * rows;
     int numImages = rows * cols;
-    
+
     int outputLength = outputWidth * outputHeight * pixel_size;
     u_char* output_data = (u_char*) malloc(outputLength);
-    
+
     int currentMajorRow = 0;
     int currentMajorColumn = 0;
     for (int i = 0; i < numImages; ++i) {
@@ -41,19 +59,32 @@ void combine(u_char** images, int rows, int cols, char* filenamePrefix) {
         }
     }
 
-    int crcHash = 0;
-    for (int i = 0; i < outputLength; ++i) {
-        crcHash = (crcHash + output_data[i]) & 0xFFFFFF;
-    }
-    char filename[196];
-    snprintf(filename, 196, "%s - output [%06x].jpg", filenamePrefix, crcHash);
+    writeImageFile(filenamePrefix, outputWidth, outputHeight, output_data, outputLength);
 
-    int result = stbi_write_jpg(filename, outputWidth, outputHeight, 4, output_data, 90);
-    if (result) {
-        printf("%s was successfully written\n", filename);
-    } else {
-        printf("Error writing %s\n", filename);
+    free(output_data);
+}
+
+void combineVeritcal(u_char** images, int numImages, char* filenamePrefix) {
+    int pixel_size = 4 * sizeof(u_char);
+    int outputWidth = width;
+    int excludeRows = (int) (0.75 * height);
+    int includeRows = height - excludeRows;
+    int excludeSize = outputWidth * excludeRows * pixel_size;
+    int includeSize = outputWidth * includeRows * pixel_size;
+    int outputHeight = height + (int) ((numImages - 1) * includeRows);
+
+    int outputLength = outputWidth * outputHeight * pixel_size;
+    u_char* output_data = (u_char*) malloc(outputLength);
+
+    memcpy(output_data, images[0], outputWidth * height * pixel_size);
+    int offset = outputWidth * height * pixel_size;
+
+    for (int i = 1; i < numImages; ++i) {
+        memcpy(output_data + offset, images[i] + excludeSize, includeSize);
+        offset += includeSize;
     }
+
+    writeImageFile(filenamePrefix, outputWidth, outputHeight, output_data, outputLength);
     
     free(output_data);
 }
@@ -82,10 +113,10 @@ void loadImages(char* filename, int* count, struct ImageData* result) {
         printf("%s could not be loaded\n", filename);
         return;
     }
-    
+
     *count = 0;
-    char tempFilename[128];
-    while (fgets(tempFilename, 128, fp)) {
+    char tempFilename[MAX_FILENAME_LENGTH];
+    while (fgets(tempFilename, MAX_FILENAME_LENGTH, fp)) {
         *count += 1;
     }
     if (*count == 0) {
@@ -93,14 +124,14 @@ void loadImages(char* filename, int* count, struct ImageData* result) {
         return;
     }
     fseek(fp, 0, SEEK_SET);
-    
+
     printf("Loading %d images from %s\n", *count, filename);
     int temp_width, temp_height, n;
-    char* resultFilename = malloc(128 * sizeof(char));
+    char* resultFilename = malloc(MAX_FILENAME_LENGTH * sizeof(char));
     u_char** imageData = (u_char**) malloc(*count * sizeof(u_char**));
     for (int i = 0; i < *count; ++i) {
-        char currentFilename[128];
-        fgets(currentFilename, 128, fp);
+        char currentFilename[MAX_FILENAME_LENGTH];
+        fgets(currentFilename, MAX_FILENAME_LENGTH, fp);
 
         int last = strlen(currentFilename) - 1;
         if (currentFilename[last] == '\n') {
@@ -131,7 +162,7 @@ void loadImages(char* filename, int* count, struct ImageData* result) {
 
         printf("Loaded %s\n", currentFilename);
         if (i == 0) {
-            strncpy(resultFilename, currentFilename, 128);
+            strncpy(resultFilename, currentFilename, MAX_FILENAME_LENGTH);
         }
         imageData[i] = data;
     }
@@ -148,9 +179,13 @@ int main(int argc, char** argv) {
         return 1;
     }
     char* filename = argv[1];
-    int rows = 0, cols = 0, count;
+    int rows = 0, cols = 0, vertical = 0, count;
     if (argc >= 3) {
-        rows = atoi(argv[2]);
+        if (argv[2][0] == '-' && argv[2][1] == 'v') {
+            vertical = 1;
+        } else {
+            rows = atoi(argv[2]);
+        }
     }
     if (argc >= 4) {
         cols = atoi(argv[3]);
@@ -161,18 +196,26 @@ int main(int argc, char** argv) {
     if (imageData.data == NULL) {
         return 1;
     }
-    
+
     u_char** images = imageData.data;
     char* filenamePrefix = imageData.filename;
 
-    if (rows == 0 || cols == 0) {
-        puts("No row size passed, computing near square dimensions");
-        computeNearSquareDimensions(count, &rows, &cols);
-        printf("Dimensions: %d X %d\n", rows, cols);
+    if (vertical) {
+        printf("Combining the first %d images listed in %s of dimensions %dx%d into vertical image\n",
+            count, filename, width, height);
+        combineVeritcal(images, count, filenamePrefix);
+    } else {
+        if (rows == 0 || cols == 0) {
+            puts("No row size passed, computing near square dimensions");
+            computeNearSquareDimensions(count, &rows, &cols);
+            printf("Dimensions: %d X %d\n", rows, cols);
+        }
+
+        printf("Combining the first %d images listed in %s of dimensions %dx%d into a %dx%d image\n",
+            count, filename, width, height, width*cols, height*rows);
+        combine(images, rows, cols, filenamePrefix); 
     }
-    
-    printf("Combining the first %d images listed in %s of dimensions %dx%d into a %dx%d image\n", count, filename, width, height, width*cols, height*rows);
-    combine(images, rows, cols, filenamePrefix);
+
     freeImages(images, count);
     free(filenamePrefix);
     return 0;
